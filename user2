@@ -1,0 +1,73 @@
+#include <iostream>
+#include <string.h> //to use string
+#include <pthread.h>
+#include <stdlib.h>	
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h> 
+#include <fstream>
+using namespace std;
+
+string username1;
+string addressIP;
+
+char * myfifo1 = "/tmp/myfifo";
+
+void * writeMessage (void * var){
+	
+	while(1){
+		char arr1[80];
+		printf("%s : ",username1);
+		fgets(arr1,80,stdin);
+		
+		ofstream myfile; 
+		myfile.open("history1.txt",ios::app);
+		string s =arr1;
+		myfile << s;
+		myfile.close();
+
+		int fd = open(myfifo1, O_WRONLY);
+		write(fd,arr1, strlen(arr1)+1);
+		close(fd);
+	}
+}
+
+void * readMessage (void * var1){
+
+	while(1){
+		char arr2[80];
+		int fd = open(myfifo1, O_RDONLY);
+		read(fd, arr2, sizeof(arr2));
+		printf("%s",arr2);
+		
+		}
+}
+
+int main()
+{	
+	//clear screan
+	system ("clear");
+	cout << "Please enter your name: ";
+	cin >> username1;
+
+	//clear screan
+	system ("clear");
+	cout<<"Hello"<<username1<<endl;
+	cout<<"Welcome to out chat room"<<endl;
+	
+	
+	mkfifo(myfifo1, 0666);
+
+	pthread_t t1;
+	int rc1 = pthread_create(&t1,NULL,writeMessage,(void *)0);
+	
+	
+	pthread_t t2;
+	int rc2 = pthread_create(&t2,NULL,readMessage,(void *)0);
+	//printf(username,":",arr1);
+	
+	return 0;
+
+}
