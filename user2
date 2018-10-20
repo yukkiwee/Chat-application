@@ -9,20 +9,27 @@
 #include <unistd.h> 
 #include <fstream>
 #include <thread>
+#include <condition_variable>
+#include <mutex>
+
 using namespace std;
 
 string username1;
 string addressIP;
 int usercount;
 
-char * myfifo1 = "/tmp/myfifo";
+
+
+char * myfifo1 = "/tmp/u2.fifo";
+char * ofifo1 = "/tmp/u1.fifo";
 
 void * writeMessage (){
 	
 	while(1){
+		
 		char arr1[80];
 		fgets(arr1,80,stdin);
-		//printf("%s ",arr1);
+			
 		
 		ofstream myfile; 
 		myfile.open("history1.txt",ios::app);
@@ -33,21 +40,29 @@ void * writeMessage (){
 		char * i = new char[s.size()+1];
 		strcpy(i,s.c_str());
 		
-		int fd = open(myfifo1, O_WRONLY);
+		int fd = open(ofifo1, O_WRONLY);
 		write(fd,i, strlen(i));
 		close(fd);
+		
+		cout<<username1;
+		cout<<":";	
+		printf("%s",arr1);
 	}
 }
 
 void * readMessage (){
 
 	while(1){
+
 		char arr2[80];
-		memset(arr2,0,sizeof(arr2));
+		memset(arr2,0,sizeof(arr2)); //each time will set the arr2 to 0 so old message will be print out
 		int fd = open(myfifo1, O_RDONLY);
 		read(fd, arr2, sizeof(arr2));
-		printf("%s :",arr2);
 		
+				
+		printf("%s",arr2);
+		
+
 		}
 }
 
@@ -81,15 +96,14 @@ int main()
 	
 		cout<< "Chat room is empty." <<endl;
 	
-	
-	
 	mkfifo(myfifo1, 0666);
+	mkfifo(ofifo1, 0666);	
 
 	thread thsend(writeMessage);
 	thread threceive(readMessage);
 	thsend.join();
 	threceive.join();
 	
-	
 	return 0;
 
+}
