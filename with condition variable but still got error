@@ -1,0 +1,115 @@
+#include <iostream>
+#include <string.h> //to use string
+#include <pthread.h>
+#include <stdlib.h>	
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h> 
+#include <fstream>
+#include <thread>
+#include <condition_variable>
+#include <mutex>
+
+using namespace std;
+
+string username1;
+string addressIP;
+int usercount;
+mutex m;
+condition_variable cv;
+bool ready = false;
+bool processed = false;
+
+char * myfifo1 = "/tmp/myfifo";
+
+void * writeMessage (){
+	
+	while(1){
+		char arr1[80];
+		fgets(arr1,80,stdin);
+		//printf("%s ",arr1);
+		
+		ofstream myfile; 
+		myfile.open("history1.txt",ios::app);
+		string s =username1 + ":"+ arr1;
+		myfile << s;
+		myfile.close();
+		
+		char * i = new char[s.size()+1];
+		strcpy(i,s.c_str());
+		
+		int fd = open(myfifo1, O_WRONLY);
+		write(fd,i, strlen(i));
+		close(fd);
+	}
+}
+
+void * readMessage (){
+
+	while(1){
+		unique_lock<mutex>lk(m);
+		cv.wait(lk,[]{return ready;});
+		
+		processed = true;
+
+		char arr2[80];
+		memset(arr2,0,sizeof(arr2)); //each time will set the arr2 to 0 so old message will be print out
+		int fd = open(myfifo1, O_RDONLY);
+		read(fd, arr2, sizeof(arr2));
+		
+				
+		printf("%s",arr2);
+		
+
+		}
+}
+
+int main()
+{	
+	//clear screan
+	system ("clear");
+	cout << "Please enter your name: ";
+	cin >> username1;
+
+	//clear screan
+	system ("clear");
+	cout<<"Hello "<<username1<<endl;
+	cout<<"Welcome to our chat room"<<endl;
+	
+	cout << "List of users in the chat room :"<<endl;
+	
+	if (username1 == "")
+
+		usercount = 0;
+	else 
+
+		usercount = 1;
+
+	if(usercount == 1)
+
+		cout<< username1 <<endl;
+
+
+	else if (usercount == 0)
+	
+		cout<< "Chat room is empty." <<endl;
+	
+	lock_guard<mutex>lk(m);
+	ready = true;
+				
+	unique_lock<mutex>lk(m);
+	cv.wait(lk,[]{return processed;});
+	
+	mkfifo(myfifo1, 0666);
+
+	thread thsend(writeMessage);
+	thread threceive(readMessage);
+	thsend.join();
+	threceive.join();
+	
+	
+	return 0;
+
+}
