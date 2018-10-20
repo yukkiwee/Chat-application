@@ -43,6 +43,7 @@ void * readMessage (){
 
 	while(1){
 		char arr2[80];
+		memset(arr2,0,sizeof(arr2));
 		int fd = open(myfifo1, O_RDONLY);
 		read(fd, arr2, sizeof(arr2));
 		printf("%s :",arr2);
