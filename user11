@@ -1,0 +1,126 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <iostream>
+#include <thread>
+
+
+static std::string username;
+static std::string userfile;
+static std::string chatwithfile;
+static std::string chatwith;
+int usercount;
+
+void * readthread(void * idn)
+{
+    int id = (int)idn;
+    char rbuff[80];
+    memset(rbuff, '\0', 80);
+    while(true){
+        read(id,rbuff,80);
+        if((strlen(rbuff)) != 0) {
+            printf("\n%s", rbuff);    //printing the received message
+            std::cout << std::endl << username + ":";
+            memset(rbuff, '\0', 80);
+        }
+        if(strstr(rbuff,":end"))    //end the chat if input string is "end"
+            break;
+    }
+}
+
+void * getandwrite(void * fd) {
+    int id = (int)fd;
+    while (id < 0)
+    {
+        id = open(chatwithfile.c_str(),O_WRONLY|O_NONBLOCK);
+        sleep(1);
+    }
+    while(true) {
+        std::string ans;
+        std::cout << username + ":";
+        getline(std::cin, ans);
+        std::string towrite = username + ':' + ans;
+        write(id, towrite.c_str(), 80);
+        if (ans == "end")
+            break;
+    }
+}
+
+int main()
+{
+    setbuf(stdout, nullptr);
+        using namespace std;
+    //clear screan
+    system ("clear");
+    //requesting user to enter his/her nickname
+    cout << "Please enter your name: ";
+    //waiting for entry from keyboard
+    cin >> username;
+
+    //clear screan
+    system ("clear");
+    //printing out hello with entered username
+    cout <<"Hello "<<username;
+    //welcoming useres to the chatroom
+    cout <<"\nWelcome to our chat room \n";
+    cout << "***************\n";
+    
+    //listing out active users
+    cout << "List of users in the chat room :\n";
+    
+    if (username == "")
+
+        usercount = 0;
+    else 
+
+        usercount = 1;
+
+    if(usercount == 1)
+
+        cout<< username;
+
+
+    else if (usercount == 0)
+    
+        cout<< "Chat room is empty.";
+     cout << "\n***************\n";    
+
+        cout << "Enter User to chat with : \n";
+        cin >> chatwith;
+        chatwithfile = "./" + chatwith + "fifo";
+        userfile = "./" + username + "fifo";
+        int fd, fd2;
+
+    if(access(userfile.c_str(),F_OK) != 0)    //check if MF1 is present or not
+    {
+        if(mkfifo(userfile.c_str(),0666) == -1)    //create MF1
+        {
+            perror("history1.txt");
+            exit(EXIT_FAILURE);
+        }
+    }
+    fd2 = open(userfile.c_str(),O_RDONLY|O_NONBLOCK);
+    if(access(chatwithfile.c_str(),F_OK) != 0)        //check if MF1 is present or not
+    {
+        if(mkfifo(chatwithfile.c_str(),0666) == -1)    //create MF1
+        {
+            perror("history2.txt");
+            exit(EXIT_FAILURE);
+        }
+    }
+    fd = open(chatwithfile.c_str(),O_WRONLY|O_NONBLOCK);    //opening MF1 in read/write mode
+    std::string temp;
+
+
+    cin.ignore();
+    pthread_t tid1,tid2;
+    pthread_create(&tid1, nullptr,readthread, &fd2);
+    pthread_create(&tid2, nullptr,getandwrite, &fd);
+    pthread_join(tid1,nullptr);
+    pthread_join(tid2,nullptr);
+    printf("%s : End\n", _FILE_);
+    return 0;
+}
